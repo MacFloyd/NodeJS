@@ -1,4 +1,4 @@
-const mongodb = require('mongodb')
+const mongodb = require('mongodb')            
 const MongoClient = mongodb.MongoClient
 const Async = require('async')
 
@@ -9,18 +9,17 @@ const Path = require('path');
 const url = 'mongodb://localhost:27017'
 
 const insertDocuments =
-    (row2Insert, db, callback) => {
+    (rows2Insert, db, Run_Number, callback) => {
         // Get reference to edx-course-docs collection
         const Mycollection = db.collection('edx-course-ClientData')
         //insert 3 documents
         Mycollection.insert(
-            [
-                row2Insert
-            ], (error, result) => {
+            rows2Insert,
+            (error, result) => {
                 if (error) {
                     return process.exit(1)
                 }
-                console.log(`Inserted ${result.result.n} documents into the edx-course-ClientData collection`)
+                console.log(`Inserted ${result.result.n} documents, from run ${Run_Number} into the edx-course-ClientData collection`)
                 callback(result)
             })
     }
@@ -57,18 +56,22 @@ MongoClient.connect(url,
 
         let Queries = process.argv[2]
         var tasks = [];
-        let total_runs = 1000 / Queries;
+        let total_runs = CustInfo.length / Queries;
         let currRow = 0;
 
         for (let y = 0; y < total_runs; y++) {
             tasks.push(() => {
                 let top = (currRow - 0) + (Queries - 0)
+                let row_batch = []
 
                 for (let x = currRow; x < top; x++) {
-                    insertDocuments(MergeJSON(CustInfo[x], CustAddr[x]), db, () => {
-                        client.close()
-                    })
+                    row_batch.push(MergeJSON(CustInfo[x], CustAddr[x]))
                 }
+
+                insertDocuments(row_batch, db, y, () => {
+                    client.close()
+                })
+
                 currRow += (Queries - 0)
             })
         }
